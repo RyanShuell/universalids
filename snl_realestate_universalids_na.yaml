@@ -1,0 +1,61 @@
+global:
+  extract:
+    connection:
+      conf: ${SNL_TWOSIGMA_FTP}
+      type: ftp
+    fetch_method: fetch_directory
+    file_patterns:
+    - .*UniversalIDs_RealEstateNA_{FD_YYYYMMDD}_.*\.zip
+    remote_path: 110866/RealEstate/NA
+    timedelta:
+      days: 0
+  validate:
+    datetime_format:
+      Date_Coverage_was_Issued: '%m/%d/%Y %H:%M:%S %p'
+      Period_Ended: '%m/%d/%Y %H:%M:%S %p'
+      Update_Date: '%m/%d/%Y %H:%M:%S %p'
+    delimiter: '|'
+    encoding: utf-8
+    error_bad_lines: true
+    nan: 0
+    null_number: 0
+    null_string: ''
+    quotechar: '"'
+    skip_footer: false
+    skip_rows: []
+  load:
+    crux_api_conf: ${SNL_REALESTATE_API}
+    endpoint: ${API_HOST}
+id: snl_realestate_universalids_na
+pipelines:
+- id: snl_realestate_universalids_na
+  global:
+    global:
+      schema_def:
+        fields:
+        - data_type: STRING
+          name: Operation
+        - data_type: STRING
+          name: SNL_Institution_Key
+        - data_type: STRING
+          name: Legal_Entity_Identifier
+        - data_type: STRING
+          name: Company_Name
+  steps:
+  - id: extract
+    conf:
+      action_class: pipeline.crux_pdk.actions.extract.extractor.Extractor
+      unzip_patterns:
+      - .*RealEstate_MonthlyPricing.*_{FD_YYYYMMDD}.*
+  - id: validate
+    conf:
+      action_class:
+      - pipeline.crux_pdk.actions.preprocess.preprocesser.PreProcesser
+      - pipeline.crux_pdk.actions.validate.validator.Validator
+  - id: standardize
+    conf:
+      action_class: pipeline.crux_pdk.actions.standardize.standardizer.Standardizer
+  - id: load
+    conf:
+      action_class: pipeline.crux_pdk.actions.load.loader.Loader
+      crux_table_name: snl_realestate_universalids_na
